@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPI: Keterampilan Gerak</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3C096C',
+                        primaryLight: '#5a189a',
+                        secondary: '#2EC4B6',
+                        secondaryDark: '#128b7e',
+                        accent: '#F8F9FA',
+                        darkBg: '#1a202c',
+                        darkSurface: '#2d3748',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- JS Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- html2canvas for Certificate -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        
+        /* 3D Button Effects */
+        .btn-3d {
+            transition: all 0.1s;
+            box-shadow: 0 6px 0 var(--shadow-color, #1e0436);
+        }
+        .btn-3d:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 var(--shadow-color, #1e0436);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dark ::-webkit-scrollbar-track { background: #2d3748; }
+        ::-webkit-scrollbar-thumb { background: #3C096C; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #5a189a; }
+
+        /* Hide elements */
+        .hidden-section { display: none !important; }
+        
+        /* Fade In Animation */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Quiz UI */
+        .option-btn { transition: all 0.2s; }
+        .option-btn.selected { border-color: #2EC4B6; background-color: #e6fcf9; }
+        .dark .option-btn.selected { background-color: rgba(46, 196, 182, 0.2); }
+        .option-btn.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .option-btn.wrong { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        
+        /* Certificate Background */
+        .cert-bg {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .cert-bg::before {
+            content: ''; position: absolute; top: -50px; left: -50px; width: 200px; height: 200px;
+            background: #3C096C; border-radius: 50%; opacity: 0.1;
+        }
+        .cert-bg::after {
+            content: ''; position: absolute; bottom: -50px; right: -50px; width: 300px; height: 300px;
+            background: #2EC4B6; border-radius: 50%; opacity: 0.1;
+        }
+
+        /* Match Game */
+        .match-item { cursor: pointer; transition: all 0.2s; }
+        .match-item.selected { border: 2px solid #3C096C; transform: scale(1.05); }
+        .match-item.matched { background-color: #d4edda; cursor: not-allowed; opacity: 0.7; border-color:#28a745; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 dark:bg-darkBg dark:text-gray-200 min-h-screen flex flex-col">
+
+    <!-- Audio Element (Lofi Music) -->
+    <!-- Using a generic placeholder URL for music, user can replace -->
+    <audio id="bgMusic" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlert" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center fade-in">
+        <div class="bg-white dark:bg-darkSurface rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl text-center">
+            <div id="alertIcon" class="text-4xl mb-4 text-primary"><i class="fas fa-info-circle"></i></div>
+            <h3 id="alertTitle" class="text-xl font-bold mb-2 text-primary dark:text-secondary">Info</h3>
+            <p id="alertMessage" class="text-gray-600 dark:text-gray-300 mb-6">Pesan</p>
+            <button onclick="closeAlert()" class="bg-primary hover:bg-primaryLight text-white px-6 py-2 rounded-lg font-semibold w-full">OK</button>
+        </div>
+    </div>
+
+    <!-- Header (Hidden on Login) -->
+    <header id="mainHeader" class="bg-primary text-white p-4 shadow-md sticky top-0 z-40 hidden-section">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <button onclick="goHome()" class="hover:text-secondary transition text-xl" title="Ke Menu Utama">
+                    <i class="fas fa-home"></i>
+                </button>
+                <h1 class="font-bold text-lg md:text-xl hidden md:block">MPI PJOK: Adaptasi Gerak</h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-right hidden sm:block">
+                    <div id="displayStudentName" class="font-semibold text-secondary">Nama</div>
+                    <div id="displayStudentClass" class="text-xs opacity-80">Kelas</div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="flex gap-2 bg-black bg-opacity-20 rounded-full p-1">
+                    <button onclick="toggleAudio()" id="btnAudio" class="p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition" title="Musik">
+                        <i class="fas fa-volume-up w-5"></i>
+                    </button>
+                    <button onclick="toggleTheme()" id="btnTheme" class="p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition" title="Mode Gelap/Terang">
+                        <i class="fas fa-moon w-5"></i>
+                    </button>
+                    <button onclick="readAloudCurrentSection()" id="btnTTS" class="p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition text-secondary" title="Bacakan Teks">
+                        <i class="fas fa-volume-control-phone w-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-primaryLight h-1.5 mt-4 rounded-full overflow-hidden">
+            <div id="overallProgress" class="bg-secondary h-full w-0 transition-all duration-500"></div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow container mx-auto p-4 flex flex-col justify-center max-w-4xl relative">
+        
+        <!-- SECTION: LOGIN -->
+        <section id="sec-login" class="fade-in bg-white dark:bg-darkSurface rounded-2xl shadow-xl overflow-hidden border-t-4 border-primary">
+            <div class="md:flex">
+                <div class="md:w-1/2 bg-primary p-8 text-white flex flex-col justify-center items-center text-center">
+                    <i class="fas fa-running text-6xl text-secondary mb-4 drop-shadow-lg"></i>
+                    <h1 class="text-3xl font-bold mb-2">Media Pembelajaran Interaktif</h1>
+                    <p class="text-secondary font-semibold mb-4">PJOK Kelas VII</p>
+                    <p class="text-sm opacity-90 italic">"Menyempurnakan Keterampilan Gerak: Beradaptasi dengan Situasi Gerak yang Menantang"</p>
+                </div>
+                <div class="md:w-1/2 p-8">
+                    <h2 class="text-2xl font-bold text-primary dark:text-secondary mb-6 text-center">Mulai Belajar</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Nama Murid</label>
+                            <input type="text" id="inputName" placeholder="Ketik namamu di sini..." class="w-full p-3 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-0 dark:bg-gray-700 dark:text-white transition">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Kelas</label>
+                            <select id="selectClass" onchange="handleClassChange()" class="w-full p-3 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary dark:bg-gray-700 dark:text-white transition">
+                                <option value="">Pilih Kelas...</option>
+                                <option value="VII A">VII A</option>
+                                <option value="VII B">VII B</option>
+                                <option value="VII C">VII C</option>
+                                <option value="VII D">VII D</option>
+                                <option value="VII E">VII E</option>
+                                <option value="VII F">VII F</option>
+                                <option value="other">LAINNYA / TULIS MANUAL</option>
+                            </select>
+                        </div>
+                        
+                        <div id="manualClassDiv" class="hidden">
+                            <input type="text" id="inputManualClass" placeholder="Tulis kelasmu..." class="w-full p-3 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary dark:bg-gray-700 dark:text-white transition">
+                        </div>
+                        
+                        <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg text-sm text-blue-800 dark:text-blue-200 mt-4 flex gap-2 items-start">
+                            <i class="fas fa-info-circle mt-0.5"></i>
+                            <p>Pastikan menggunakan headphone atau aktifkan suara untuk pengalaman belajar yang lebih baik. Ada fitur baca otomatis (Text-to-Speech)!</p>
+                        </div>
+
+                        <button onclick="startLearning()" style="--shadow-color: #1e0436;" class="btn-3d w-full mt-6 bg-primary text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-lg">
+                            MULAI BELAJAR <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: MAIN MENU -->
+        <section id="sec-menu" class="hidden-section fade-in">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-primary dark:text-white mb-2">Menu Utama</h2>
+                <p class="text-gray-600 dark:text-gray-400">Pilih materi yang ingin kamu pelajari hari ini, <span id="welcomeName" class="font-bold text-secondary"></span>!</p>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                <!-- Menu Items will be generated via JS -->
+            </div>
+        </section>
+
+        <!-- CONTENT CONTAINER (For all sub-pages) -->
+        <div id="content-container" class="hidden-section bg-white dark:bg-darkSurface rounded-2xl shadow-lg p-6 md:p-8 border-t-4 border-secondary fade-in">
+            
+            <!-- Section Header -->
+            <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+                <h2 id="sectionTitle" class="text-2xl font-bold text-primary dark:text-secondary">Judul</h2>
+                <span id="sectionBadge" class="bg-secondary text-white text-xs font-bold px-3 py-1 rounded-full"><i class="fas fa-star"></i> Materi</span>
+            </div>
+
+            <!-- DYNAMIC CONTENT AREA -->
+            <div id="dynamic-content" class="text-lg leading-relaxed text-gray-700 dark:text-gray-300 min-h-[50vh]">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="mt-8 flex justify-between items-center border-t pt-4 dark:border-gray-700">
+                <button onclick="navigate('prev')" id="btnPrev" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold flex items-center gap-2">
+                    <i class="fas fa-chevron-left"></i> Sebelumnya
+                </button>
+                <button onclick="navigate('next')" id="btnNext" class="px-5 py-2 bg-primary text-white rounded-lg hover:bg-primaryLight transition font-semibold flex items-center gap-2">
+                    Selanjutnya <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer id="mainFooter" class="bg-gray-800 text-white text-center p-4 mt-8 hidden-section">
+        <p class="text-sm text-gray-400">© 2026 Media Pembelajaran Interaktif PJOK SMP. Dirancang untuk Pembelajaran Mendalam.</p>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        const state = {
+            studentName: '',
+            studentClass: '',
+            currentSectionId: 'login',
+            isMuted: true, // Start muted due to browser policies
+            isDarkMode: false,
+            completedSections: new Set(),
+            scores: {
+                awal: 0,
+                kuis: 0,
+                akhir: 0
+            },
+            quizTimers: {}
+        };
+
+        // --- MENU STRUCTURE ---
+        const menuItems = [
+            { id: 'tujuan', title: 'Tujuan Pembelajaran', icon: 'fa-bullseye', color: '#3C096C' },
+            { id: 'apersepsi', title: 'Apersepsi', icon: 'fa-lightbulb', color: '#F59E0B' },
+            { id: 'asesmen_awal', title: 'Asesmen Awal', icon: 'fa-clipboard-question', color: '#E83F6F' },
+            { id: 'materi', title: 'Materi Pembelajaran', icon: 'fa-book-open', color: '#227C9D' },
+            { id: 'simulasi', title: 'Simulasi & Aktivitas', icon: 'fa-gamepad', color: '#FFCB77' },
+            { id: 'kuis', title: 'Kuis Interaktif', icon: 'fa-brain', color: '#9B5DE5' },
+            { id: 'asesmen_akhir', title: 'Asesmen Akhir', icon: 'fa-medal', color: '#00BBF9' },
+            { id: 'refleksi', title: 'Refleksi', icon: 'fa-mirror', color: '#F15BB5' },
+            { id: 'sertifikat', title: 'Sertifikat', icon: 'fa-certificate', color: '#00F5D4' }
+        ];
+
+        // --- CONTENT DATA ---
+
+        const contentData = {
+            'tujuan': {
+                html: `
+                    <div class="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl border-l-4 border-primary shadow-sm text-lg">
+                        <p class="mb-4">Pada unit ini, kamu akan:</p>
+                        <p class="font-semibold text-primary dark:text-secondary mb-2"><i class="fas fa-check-circle mr-2"></i> Merancang, Menerapkan, dan Memperhalus</p>
+                        <p class="mb-4">penyempurnaan keterampilan gerak dalam situasi yang menantang.</p>
+                        
+                        <p class="font-semibold text-primary dark:text-secondary mb-2"><i class="fas fa-check-circle mr-2"></i> Melibatkan Pengembangan Strategi Gerak</p>
+                        <p class="mb-4">yang dapat diterapkan dalam berbagai situasi yang berbeda, seperti permainan olahraga, serta menganalisis dampaknya terhadap kemajuan keterampilan gerak.</p>
+                        
+                        <p class="font-semibold text-primary dark:text-secondary mb-2"><i class="fas fa-check-circle mr-2"></i> Mentransfer dan Mengadaptasi</p>
+                        <p>strategi gerak yang telah dipelajari ke dalam konteks gerak yang baru.</p>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <img src="https://placehold.co/600x300/3C096C/F8F9FA?text=Fokus+dan+Siap+Beradaptasi" alt="Ilustrasi Fokus" class="mx-auto rounded-xl shadow-md w-full max-w-md" onerror="this.style.display='none'">
+                    </div>
+                `
+            },
+            'apersepsi': {
+                html: `
+                    <div class="text-center mb-6">
+                        <div class="relative inline-block w-full max-w-lg mb-6">
+                            <img src="https://placehold.co/600x400/2EC4B6/ffffff?text=Bermain+Bola+Saat+Hujan+Deras" alt="Ilustrasi Hujan" class="rounded-xl shadow-lg w-full" onerror="this.style.display='none'">
+                            <div class="absolute -bottom-4 right-4 text-5xl drop-shadow-md">🌧️⚽</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-xl border-2 border-yellow-400">
+                            <h3 class="text-xl font-bold text-yellow-700 dark:text-yellow-400 mb-2"><i class="fas fa-question-circle"></i> Bayangkan...</h3>
+                            <p class="text-lg">Kamu sedang bermain sepak bola dengan teman-temanmu. Tiba-tiba hujan turun sangat deras. Lapangan menjadi sangat licin dan becek.</p>
+                            <br>
+                            <p class="font-bold text-primary dark:text-white">Apa yang akan terjadi jika kamu tetap berlari dan menendang bola dengan cara yang sama persis seperti saat lapangan kering?</p>
+                        </div>
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border-2 border-blue-400">
+                            <h3 class="text-xl font-bold text-blue-700 dark:text-blue-400 mb-2"><i class="fas fa-comment-dots"></i> Pertanyaan Pemantik</h3>
+                            <p class="text-lg font-semibold">Menurut pendapatmu, apa yang harus diubah dari cara bergerakmu agar tidak mudah terpeleset dan tetap bisa menguasai bola di situasi tersebut?</p>
+                        </div>
+                        <p class="italic text-gray-500 text-center text-sm">Simpan jawabanmu di dalam pikiran, kita akan menemukan jawabannya di materi selanjutnya!</p>
+                    </div>
+                `
+            },
+            'materi': {
+                html: `
+                    <div class="space-y-6">
+                        <p>Dalam olahraga dan kehidupan sehari-hari, situasi di sekitar kita selalu berubah. Lapangan licin, lawan yang bergerak cepat, atau ruang gerak yang sempit adalah contoh <strong>Situasi Gerak yang Menantang</strong>.</p>
+                        
+                        <h3 class="text-xl font-bold text-primary dark:text-secondary border-b-2 border-primary inline-block pb-1">1. Mengapa Perlu Beradaptasi?</h3>
+                        <p>Keterampilan gerak dasar (lari, lompat, lempar) saja tidak cukup. Kita harus bisa menyesuaikan (beradaptasi) gerak tersebut sesuai kondisi. Jika tidak beradaptasi, kita bisa cedera atau gagal mencapai tujuan (misal: bola terebut lawan).</p>
+
+                        <!-- Infographic Style Box -->
+                        <div class="bg-gray-50 dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col sm:flex-row gap-4 items-center">
+                            <div class="text-4xl text-secondary"><i class="fas fa-sync-alt"></i></div>
+                            <div>
+                                <h4 class="font-bold text-lg">Konsep Kunci: Adaptasi Gerak</h4>
+                                <p class="text-sm">Kemampuan mengubah kecepatan, arah, kekuatan, atau teknik gerakan secara cepat dan tepat merespon perubahan lingkungan tanpa kehilangan keseimbangan.</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-bold text-primary dark:text-secondary border-b-2 border-primary inline-block pb-1">2. Strategi Beradaptasi dalam Olahraga</h3>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div class="bg-white dark:bg-darkSurface p-4 rounded-lg shadow border-l-4 border-blue-500">
+                                <h4 class="font-bold text-blue-600 dark:text-blue-400"><i class="fas fa-expand-arrows-alt"></i> Mengubah Arah (Agility)</h4>
+                                <p class="text-sm mt-1">Gunakan langkah kecil, rendahkan titik berat badan (tekuk lutut sedikit) saat akan berbelok tajam.</p>
+                            </div>
+                            <div class="bg-white dark:bg-darkSurface p-4 rounded-lg shadow border-l-4 border-green-500">
+                                <h4 class="font-bold text-green-600 dark:text-green-400"><i class="fas fa-balance-scale"></i> Mengubah Kecepatan</h4>
+                                <p class="text-sm mt-1">Transisi dari lari pelan (jogging) ke lari cepat (sprint) secara tiba-tiba untuk mengecoh lawan.</p>
+                            </div>
+                            <div class="bg-white dark:bg-darkSurface p-4 rounded-lg shadow border-l-4 border-purple-500">
+                                <h4 class="font-bold text-purple-600 dark:text-purple-400"><i class="fas fa-eye"></i> Antisipasi (Visual)</h4>
+                                <p class="text-sm mt-1">Membaca arah pandangan atau posisi tubuh lawan sebelum mereka bergerak.</p>
+                            </div>
+                            <div class="bg-white dark:bg-darkSurface p-4 rounded-lg shadow border-l-4 border-red-500">
+                                <h4 class="font-bold text-red-600 dark:text-red-400"><i class="fas fa-shield-alt"></i> Mengatur Keseimbangan</h4>
+                                <p class="text-sm mt-1">Membuka kaki lebih lebar saat didorong lawan atau saat mendarat di permukaan tidak rata.</p>
+                            </div>
+                        </div>
+
+                        <!-- Info Box (Tosca) -->
+                        <div class="bg-[#2EC4B6] bg-opacity-20 border-2 border-[#2EC4B6] p-5 rounded-xl text-[#0d5952] dark:text-[#a0f0e8] relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 text-6xl opacity-20"><i class="fas fa-lightbulb"></i></div>
+                            <h4 class="font-bold text-lg mb-2 flex items-center gap-2"><i class="fas fa-info-circle"></i> Tahukah Kamu? / Fakta Menarik</h4>
+                            <p>Atlet profesional tingkat dunia tidak hanya berlatih teknik dasar, tetapi mereka menghabiskan lebih dari 60% waktu latihannya dalam situasi "permainan kecil" (small-sided games) yang acak. Tujuannya? Melatih otak untuk mengambil keputusan adaptasi gerak dalam waktu kurang dari 1 detik!</p>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        // --- QUIZ DATA ---
+        const quizData = {
+            'asesmen_awal': [
+                { q: "Apa yang dimaksud dengan adaptasi gerak?", options: ["Melakukan gerakan berulang-ulang dengan ritme yang sama", "Kemampuan mengubah gerakan sesuai dengan perubahan situasi di sekitar", "Berlari secepat mungkin tanpa mempedulikan lawan", "Melakukan pemanasan sebelum olahraga"], answer: 1 },
+                { q: "Saat bermain basket, temanmu dijaga ketat oleh dua lawan. Apa keputusan gerak terbaik yang harus kamu lakukan?", options: ["Tetap diam menunggu bola dioper", "Berteriak meminta bola ke teman tersebut", "Bergerak mencari ruang kosong agar teman bisa mengoper", "Berlari ke luar lapangan"], answer: 2 },
+                { q: "Mengapa merendahkan titik berat badan (menekuk lutut) penting saat akan berbelok tiba-tiba saat berlari?", options: ["Agar terlihat lebih gaya", "Mencegah cedera bahu", "Menjaga keseimbangan agar tidak mudah jatuh", "Membuat lawan ketakutan"], answer: 2 },
+                { q: "Jika kamu bermain sepak bola di lapangan yang licin sehabis hujan, strategi apa yang paling tepat?", options: ["Menggunakan langkah panjang dan berlari cepat", "Menggunakan operan pendek dan menjaga keseimbangan tubuh", "Selalu menendang bola melambung tinggi", "Tidak bergerak dari posisi awal"], answer: 1 },
+                { q: "Keterampilan apa yang paling dibutuhkan untuk mengecoh lawan dalam permainan invasi (seperti basket/sepak bola)?", options: ["Kelenturan statis", "Daya tahan jantung paru", "Kelincahan (Agility) dan gerak tipu", "Kekuatan mengangkat beban"], answer: 2 }
+            ],
+            'kuis': [ // 10 HOTS Questions
+                { q: "Budi sedang menggiring bola basket menuju ring. Tiba-tiba, seorang pemain bertahan yang tinggi besar melangkah maju menutup jalur larinya. Budi memiliki waktu 1 detik untuk memutuskan. Tindakan (adaptasi gerak) manakah yang paling mencerminkan pemikiran tingkat tinggi (HOTS) Budi untuk tetap mencetak angka?", options: ["Menabrak pemain tersebut berharap mendapat pelanggaran.", "Berhenti mendadak (jump stop), melakukan gerak tipu tembakan (pump fake), lalu melangkah ke samping pemain bertahan untuk layup.", "Langsung melempar bola sekuat tenaga ke arah ring dari posisinya.", "Berbalik badan dan berlari kembali ke daerah pertahanan sendiri."], answer: 1, explanation: "Opsi B menunjukkan adaptasi kompleks: menghentikan momentum, memanipulasi lawan (gerak tipu), dan mencari jalur baru dalam waktu singkat." },
+                { q: "Dalam pertandingan sepak bola, tim A menyadari bahwa tim B selalu menempatkan beknya sangat jauh di depan (garis pertahanan tinggi). Strategi adaptasi gerak menyerang apa yang paling efektif diterapkan tim A?", options: ["Selalu menggiring bola dari pertahanan sendiri melewati semua pemain.", "Melakukan operan-operan pendek lambat di area pertahanan sendiri.", "Melakukan umpan terobosan jauh (long through pass) ke ruang kosong di belakang bek lawan untuk dikejar penyerang cepat.", "Hanya menendang bola ke luar lapangan."], answer: 2, explanation: "Mengadaptasi strategi menyerang dengan memanfaatkan ruang kosong di belakang garis pertahanan lawan yang tinggi." },
+                { q: "Siti adalah atlet bulu tangkis. Saat bertanding, ia menyadari lawannya selalu membalas pukulannya dengan pukulan lob panjang ke sudut belakang lapangan. Adaptasi gerak antisipasi apa yang harus dilakukan Siti?", options: ["Tetap berdiri di tengah lapangan dan menunggu.", "Setelah memukul, selalu bersiap melangkah mundur ke arah sudut belakang lapangan.", "Berlari maju ke depan net setiap kali selesai memukul.", "Memukul bola sekuat tenaga ke luar garis."], answer: 1, explanation: "Antisipasi berdasarkan pola pergerakan lawan." },
+                { q: "Cuaca tiba-tiba berangin kencang saat pertandingan bola voli pantai. Bagaimana sebaiknya pemain mengadaptasi keterampilan servis mereka?", options: ["Melakukan servis lompat setinggi-tingginya.", "Melakukan servis bawah yang aman atau servis datar (float serve) agar arah bola sulit ditebak karena angin.", "Menolak untuk melakukan servis.", "Menutup mata saat servis."], answer: 1, explanation: "Menyesuaikan teknik pukulan dengan kondisi lingkungan (angin) agar tetap efektif." },
+                { q: "Sebuah lintasan lari memiliki genangan air di tikungan. Seorang pelari yang memahami prinsip adaptasi gerak akan...", options: ["Tetap berlari dengan kecepatan penuh menerobos genangan.", "Memperlambat kecepatan sedikit sebelum tikungan, mengubah jalur lari menghindari genangan, lalu mempercepat kembali.", "Berhenti dan memutar balik.", "Melompat tinggi melewati genangan tanpa mengurangi kecepatan langkah."], answer: 1, explanation: "Mengubah jalur dan kecepatan untuk menjaga keselamatan dan efisiensi waktu." },
+                { q: "Dalam permainan kasti, seorang pemukul bola berhasil memukul dengan keras. Namun bola melambung tinggi dan mengarah tepat ke penjaga. Adaptasi keputusan apa yang harus diambil pemukul?", options: ["Berlari secepat kilat ke tiang hinggap pertama.", "Berhenti berlari dan melihat bola ditangkap.", "Berlari berlari-lari kecil menuju tiang hinggap pertama sambil bersiap menghindar jika bola dilempar ke arahnya, karena kemungkinan besar ia akan mati.", "Berlari ke arah berlawanan."], answer: 2, explanation: "Menganalisis situasi (bola mudah ditangkap) dan menyesuaikan gerakan untuk meminimalisir risiko, atau bersiap menghindar." },
+                { q: "Apa dampak utama jika seorang atlet tidak mampu mentransfer strategi gerak yang dipelajari saat latihan ke dalam situasi pertandingan yang sesungguhnya?", options: ["Atlet tersebut akan selalu memenangkan pertandingan.", "Keterampilan geraknya terlihat kaku, mudah dibaca lawan, dan gagal merespon situasi tak terduga.", "Atlet tersebut mendapat penghargaan pemain terbaik.", "Pertandingan akan dihentikan."], answer: 1, explanation: "Kurangnya kemampuan transfer adaptasi membuat gerakan tidak efektif dalam situasi nyata." },
+                { q: "Dalam latihan senam lantai, instruktur meminta siswa mengubah urutan gerakan dari (Guling Depan -> Loncat) menjadi (Loncat Harimau -> Guling Belakang). Tujuan utama aktivitas ini adalah...", options: ["Membuat siswa kelelahan.", "Melatih kelenturan otot leher secara khusus.", "Melatih otak dan tubuh beradaptasi secara cepat merangkai keterampilan gerak dalam konteks yang baru.", "Menghafalkan gerakan secara kaku."], answer: 2, explanation: "Menggabungkan ulang gerakan melatih kemampuan adaptasi motorik dan kognitif." },
+                { q: "Dua orang siswa sedang berlatih passing bawah bola voli. Siswa A melempar bola ke berbagai arah secara acak (ke kiri, kanan, pendek, panjang). Siswa B harus mengejar dan melakukan passing. Metode latihan ini disebut latihan situasi menantang karena...", options: ["Siswa A sengaja ingin menyusahkan siswa B.", "Memaksa siswa B secara konstan membaca arah bola, memposisikan kaki, dan mengatur keseimbangan sebelum memukul (beradaptasi).", "Bola voli yang digunakan lebih berat dari biasanya.", "Dilakukan di lapangan yang tidak rata."], answer: 1, explanation: "Latihan acak memaksa respon adaptif konstan, mereplikasi situasi permainan." },
+                { q: "Seorang pesepeda gunung (MTB) sedang menuruni bukit berbatu. Keterampilan gerak apa yang harus paling intens disempurnakan (diadaptasi) dalam situasi ini?", options: ["Mengayuh pedal secepat-cepatnya.", "Menjaga keseimbangan dinamis tubuh di atas sepeda sambil menyerap guncangan menggunakan tekukan lengan dan lutut.", "Menekan rem depan dengan keras secara terus-menerus.", "Duduk santai di sadel."], answer: 1, explanation: "Adaptasi keseimbangan dan postur untuk merespon medan yang tidak rata." }
+            ],
+            'asesmen_akhir': [ // 10 Evaluation Questions
+                { q: "Tujuan utama menyempurnakan keterampilan gerak dalam situasi menantang adalah...", options: ["Untuk memenangkan medali", "Agar gerakan menjadi otomatis, efisien, dan efektif sesuai kondisi", "Membuat tubuh cepat lelah", "Hanya sekedar formalitas pelajaran"], answer: 1 },
+                { q: "Komponen kebugaran jasmani yang paling erat kaitannya dengan kemampuan mengubah arah secara cepat adalah...", options: ["Kekuatan (Strength)", "Kelentukan (Flexibility)", "Kelincahan (Agility)", "Daya tahan (Endurance)"], answer: 2 },
+                { q: "Saat dihalangi lawan yang lebih besar, gerak adaptasi yang salah adalah...", options: ["Melakukan gerak tipu", "Mengubah arah tiba-tiba", "Memaksa menabrak lawan", "Mencari teman untuk mengoper"], answer: 2 },
+                { q: "Mentransfer strategi gerak berarti...", options: ["Menggunakan taktik dari basket ke sepak bola (misal: mencari ruang kosong)", "Memberikan bola kepada lawan", "Berpindah lapangan", "Meniru gaya pemain profesional persis tanpa modifikasi"], answer: 0 },
+                { q: "Faktor lingkungan yang dapat menciptakan situasi gerak menantang, kecuali...", options: ["Cuaca hujan", "Permukaan lapangan yang rata dan kering", "Penonton yang berisik", "Peralatan yang sedikit rusak"], answer: 1 },
+                { q: "Tahap evaluasi setelah mencoba adaptasi gerak adalah menanyakan pada diri sendiri...", options: ["Apakah baju saya kotor?", "Siapa yang salah?", "Apakah perubahan gerakan tadi berhasil mengecoh lawan atau mencapai tujuan?", "Kapan waktu istirahat?"], answer: 2 },
+                { q: "Gerakan tipu (feint) dalam olahraga bertujuan untuk...", options: ["Memanipulasi antisipasi gerak lawan agar kita mendapat ruang/waktu", "Membuat gerakan terlihat indah", "Menghabiskan waktu", "Menakut-nakuti lawan"], answer: 0 },
+                { q: "Saat mendarat dari lompatan di permukaan yang tidak rata, hal terpenting adalah...", options: ["Mendarat dengan kaki kaku lurus", "Menekuk lutut untuk meredam gaya dan menjaga keseimbangan", "Menutup mata", "Berteriak keras"], answer: 1 },
+                { q: "Kemampuan memproses informasi secara visual (melihat posisi lawan/kawan) sangat penting untuk...", options: ["Pengambilan keputusan adaptasi gerak yang tepat", "Menghitung skor", "Membuat lawan pusing", "Tidak ada hubungannya"], answer: 0 },
+                { q: "Sikap mental (mindset) yang benar saat menghadapi situasi gerak yang menantang adalah...", options: ["Panik dan menyerah", "Menyalahkan keadaan", "Tetap tenang, fokus menganalisis situasi, dan mencari solusi gerak (Growth Mindset)", "Menghindari aktivitas tersebut"], answer: 2 }
+            ]
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function initApp() {
+            // Check if returning user in session
+            const savedName = sessionStorage.getItem('mpiName');
+            const savedClass = sessionStorage.getItem('mpiClass');
+            
+            if (savedName && savedClass) {
+                state.studentName = savedName;
+                state.studentClass = savedClass;
+                document.getElementById('inputName').value = savedName;
+                document.getElementById('selectClass').value = savedClass;
+                // Don't auto login, let them click start
+            }
+
+            // Generate Menu
+            const menuContainer = document.querySelector('#sec-menu .grid');
+            menuItems.forEach(item => {
+                menuContainer.innerHTML += `
+                    <button onclick="goToSection('${item.id}')" id="menuBtn-${item.id}" style="--shadow-color: ${darkenColor(item.color)};" class="btn-3d flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-darkSurface border-2 border-gray-100 dark:border-gray-700 relative overflow-hidden group">
+                        <div class="absolute inset-0 opacity-10 transition duration-300 group-hover:opacity-20" style="background-color: ${item.color}"></div>
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4 text-3xl text-white shadow-inner" style="background-color: ${item.color}">
+                            <i class="fas ${item.icon}"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-200 text-center">${item.title}</h3>
+                        <div id="check-${item.id}" class="absolute top-2 right-2 text-green-500 hidden text-xl"><i class="fas fa-check-circle shadow-sm bg-white rounded-full"></i></div>
+                    </button>
+                `;
+            });
+            
+            // Set initial theme based on system preference or default light
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                // toggleTheme(); // Uncomment to respect system default initially
+            }
+        }
+
+        // --- UTILS ---
+        
+        // Simple function to darken a hex color for shadow
+        function darkenColor(hex) {
+            let r = parseInt(hex.slice(1,3), 16) * 0.7;
+            let g = parseInt(hex.slice(3,5), 16) * 0.7;
+            let b = parseInt(hex.slice(5,7), 16) * 0.7;
+            return `rgb(${r},${g},${b})`;
+        }
+
+        function showModal(title, message) {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('customAlert').classList.remove('hidden');
+        }
+
+        function closeAlert() {
+            document.getElementById('customAlert').classList.add('hidden');
+        }
+
+        function handleClassChange() {
+            const val = document.getElementById('selectClass').value;
+            const manualDiv = document.getElementById('manualClassDiv');
+            if (val === 'other') {
+                manualDiv.classList.remove('hidden');
+            } else {
+                manualDiv.classList.add('hidden');
+            }
+        }
+
+        // --- LOGIC: START & NAV ---
+
+        function startLearning() {
+            const name = document.getElementById('inputName').value.trim();
+            let cls = document.getElementById('selectClass').value;
+            if (cls === 'other') {
+                cls = document.getElementById('inputManualClass').value.trim();
+            }
+
+            if (!name) {
+                showModal('Peringatan', 'Silakan isi Nama kamu terlebih dahulu.');
+                return;
+            }
+            if (!cls) {
+                showModal('Peringatan', 'Silakan pilih atau isi Kelas kamu.');
+                return;
+            }
+
+            state.studentName = name;
+            state.studentClass = cls;
+            
+            sessionStorage.setItem('mpiName', name);
+            sessionStorage.setItem('mpiClass', cls);
+
+            document.getElementById('displayStudentName').innerText = name;
+            document.getElementById('displayStudentClass').innerText = cls;
+            document.getElementById('welcomeName').innerText = name;
+
+            // Start audio if unmuted (browser requires interaction first)
+            const audio = document.getElementById('bgMusic');
+            audio.volume = 0.3;
+            // Let user toggle it manually to be safe with autoplay policies
+            
+            // UI Transition
+            document.getElementById('sec-login').classList.add('hidden-section');
+            document.getElementById('mainHeader').classList.remove('hidden-section');
+            document.getElementById('mainFooter').classList.remove('hidden-section');
+            
+            goHome();
+        }
+
+        function goHome() {
+            stopTTS();
+            state.currentSectionId = 'menu';
+            document.getElementById('sec-menu').classList.remove('hidden-section');
+            document.getElementById('content-container').classList.add('hidden-section');
+            updateProgressUI();
+        }
+
+        function goToSection(id) {
+            stopTTS();
+            state.currentSectionId = id;
+            document.getElementById('sec-menu').classList.add('hidden-section');
+            document.getElementById('content-container').classList.remove('hidden-section');
+            
+            const item = menuItems.find(i => i.id === id);
+            document.getElementById('sectionTitle').innerText = item.title;
+            document.getElementById('sectionBadge').innerHTML = `<i class="fas ${item.icon}"></i>`;
+            
+            renderContent(id);
+            updateNavButtons();
+            
+            // Mark as visited (except quiz/assesment which need completion)
+            if(!['asesmen_awal', 'kuis', 'asesmen_akhir', 'simulasi'].includes(id)){
+                markComplete(id);
+            }
+        }
+
+        function markComplete(id) {
+            state.completedSections.add(id);
+            const check = document.getElementById(`check-${id}`);
+            if(check) check.classList.remove('hidden');
+            updateProgressUI();
+        }
+
+        function updateProgressUI() {
+            const total = menuItems.length;
+            const completed = state.completedSections.size;
+            const pct = Math.round((completed / total) * 100);
+            document.getElementById('overallProgress').style.width = `${pct}%`;
+        }
+
+        function navigate(direction) {
+            const currentIndex = menuItems.findIndex(i => i.id === state.currentSectionId);
+            if (direction === 'prev' && currentIndex > 0) {
+                goToSection(menuItems[currentIndex - 1].id);
+            } else if (direction === 'next' && currentIndex < menuItems.length - 1) {
+                goToSection(menuItems[currentIndex + 1].id);
+            }
+        }
+
+        function updateNavButtons() {
+            const currentIndex = menuItems.findIndex(i => i.id === state.currentSectionId);
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            
+            if (currentIndex <= 0) {
+                btnPrev.classList.add('invisible');
+            } else {
+                btnPrev.classList.remove('invisible');
+            }
+
+            if (currentIndex >= menuItems.length - 1) {
+                btnNext.classList.add('invisible');
+            } else {
+                btnNext.classList.remove('invisible');
+            }
+        }
+
+        // --- LOGIC: CONTENT RENDERING ---
+
+        function renderContent(id) {
+            const container = document.getElementById('dynamic-content');
+            container.innerHTML = ''; // Clear
+            
+            // Remove previous classes that might conflict
+            container.className = 'text-lg leading-relaxed text-gray-700 dark:text-gray-300 min-h-[50vh] fade-in';
+
+            if (contentData[id]) {
+                container.innerHTML = contentData[id].html;
+            } else if (['asesmen_awal', 'kuis', 'asesmen_akhir'].includes(id)) {
+                renderQuizEngine(id, container);
+            } else if (id === 'simulasi') {
+                renderSimulasi(container);
+            } else if (id === 'refleksi') {
+                renderRefleksi(container);
+            } else if (id === 'sertifikat') {
+                renderSertifikat(container);
+            }
+        }
+
+        // --- MODULE: QUIZ ENGINE ---
+        
+        function renderQuizEngine(quizType, container) {
+            const data = quizData[quizType];
+            const isHots = quizType === 'kuis';
+            
+            let html = `
+                <div id="quizIntro-${quizType}" class="text-center">
+                    <p class="mb-6">${isHots ? 'Siapkan dirimu! Ini adalah Kuis HOTS (High Order Thinking Skills).' : 'Jawab pertanyaan berikut untuk mengukur pemahamanmu.'}</p>
+                    <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg inline-block mb-6">
+                        <span class="font-bold text-xl">${data.length}</span> Soal
+                    </div>
+                    <br>
+                    <button onclick="startQuiz('${quizType}')" class="bg-primary hover:bg-primaryLight text-white px-8 py-3 rounded-full font-bold shadow-lg transition btn-3d" style="--shadow-color: #1e0436;">Mulai Mengerjakan</button>
+                </div>
+                
+                <div id="quizArea-${quizType}" class="hidden">
+                    <div class="flex justify-between items-center mb-4 text-sm font-semibold text-gray-500">
+                        <span>Soal <span id="qCurrent-${quizType}">1</span> / ${data.length}</span>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-clock"></i> <span id="qTimer-${quizType}">00:00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full bg-gray-200 h-2 rounded-full mb-6">
+                        <div id="qProgress-${quizType}" class="bg-secondary h-2 rounded-full transition-all" style="width: 10%;"></div>
+                    </div>
+
+                    <div id="qQuestion-${quizType}" class="text-xl font-bold mb-6 text-primary dark:text-white leading-snug">
+                        Pertanyaan...
+                    </div>
+                    
+                    <div id="qOptions-${quizType}" class="space-y-3">
+                        <!-- Options generated by JS -->
+                    </div>
+                    
+                    <div id="qFeedback-${quizType}" class="mt-4 p-4 rounded-lg hidden text-sm">
+                        <!-- Feedback -->
+                    </div>
+
+                    <div class="mt-6 text-right">
+                        <button id="qNextBtn-${quizType}" onclick="nextQuestion('${quizType}')" class="hidden bg-primary text-white px-6 py-2 rounded-lg font-bold">Selanjutnya</button>
+                    </div>
+                </div>
+
+                <div id="quizResult-${quizType}" class="hidden text-center fade-in py-8">
+                    <h3 class="text-3xl font-bold text-primary dark:text-white mb-2">Selesai!</h3>
+                    <p class="mb-6">Skor kamu adalah:</p>
+                    <div class="inline-flex justify-center items-center w-32 h-32 rounded-full bg-secondary text-white text-4xl font-bold shadow-lg mb-4">
+                        <span id="qScoreDisplay-${quizType}">0</span>
+                    </div>
+                    <div id="qPredicate-${quizType}" class="text-xl font-bold mb-8 text-primary dark:text-secondary">Predikat</div>
+                    <button onclick="goToSection('menu')" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-6 py-2 rounded-lg font-bold mr-2 hover:bg-gray-300">Kembali ke Menu</button>
+                    <button onclick="goToSection('${quizType}')" class="bg-primary text-white px-6 py-2 rounded-lg font-bold">Ulangi</button>
+                </div>
+            `;
+            container.innerHTML = html;
+            
+            // Set state variables for this quiz instance
+            window[`quizState_${quizType}`] = {
+                currentIdx: 0,
+                score: 0,
+                timer: 0,
+                interval: null,
+                answered: false
+            };
+        }
+
+        function startQuiz(quizType) {
+            document.getElementById(`quizIntro-${quizType}`).classList.add('hidden');
+            document.getElementById(`quizArea-${quizType}`).classList.remove('hidden');
+            
+            const state = window[`quizState_${quizType}`];
+            state.currentIdx = 0;
+            state.score = 0;
+            state.timer = 0;
+            
+            // Start Timer
+            clearInterval(state.interval);
+            state.interval = setInterval(() => {
+                state.timer++;
+                const min = String(Math.floor(state.timer / 60)).padStart(2, '0');
+                const sec = String(state.timer % 60).padStart(2, '0');
+                document.getElementById(`qTimer-${quizType}`).innerText = `${min}:${sec}`;
+            }, 1000);
+
+            loadQuestion(quizType);
+        }
+
+        function loadQuestion(quizType) {
+            const qs = window[`quizState_${quizType}`];
+            qs.answered = false;
+            const data = quizData[quizType];
+            const q = data[qs.currentIdx];
+            
+            document.getElementById(`qCurrent-${quizType}`).innerText = qs.currentIdx + 1;
+            document.getElementById(`qProgress-${quizType}`).style.width = `${((qs.currentIdx) / data.length) * 100}%`;
+            document.getElementById(`qQuestion-${quizType}`).innerText = q.q;
+            
+            const optionsContainer = document.getElementById(`qOptions-${quizType}`);
+            optionsContainer.innerHTML = '';
+            
+            const labels = ['A', 'B', 'C', 'D'];
+            q.options.forEach((opt, idx) => {
+                optionsContainer.innerHTML += `
+                    <button onclick="selectOption('${quizType}', ${idx})" id="opt-${quizType}-${idx}" class="option-btn w-full text-left p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-secondary dark:hover:border-secondary hover:bg-gray-50 dark:hover:bg-gray-700 transition flex gap-3 items-start">
+                        <span class="bg-gray-200 dark:bg-gray-700 w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0">${labels[idx]}</span>
+                        <span class="pt-1">${opt}</span>
+                    </button>
+                `;
+            });
+
+            document.getElementById(`qFeedback-${quizType}`).classList.add('hidden');
+            
+            // Hide Next button until answered (for interactive quizzes) or just hide it
+            if(quizType === 'asesmen_akhir'){
+                 document.getElementById(`qNextBtn-${quizType}`).classList.remove('hidden');
+                 document.getElementById(`qNextBtn-${quizType}`).innerText = "Pilih lalu Lanjut";
+                 document.getElementById(`qNextBtn-${quizType}`).disabled = true;
+                 document.getElementById(`qNextBtn-${quizType}`).classList.add('opacity-50');
+            } else {
+                 document.getElementById(`qNextBtn-${quizType}`).classList.add('hidden');
+                 document.getElementById(`qNextBtn-${quizType}`).innerText = "Selanjutnya";
+            }
+        }
+
+        function selectOption(quizType, selectedIdx) {
+            const qs = window[`quizState_${quizType}`];
+            if (qs.answered && quizType !== 'asesmen_akhir') return; // Prevent multiple clicks if immediate feedback
+            
+            const data = quizData[quizType];
+            const q = data[qs.currentIdx];
+            
+            // Visual selection
+            const buttons = document.querySelectorAll(`#qOptions-${quizType} .option-btn`);
+            buttons.forEach(btn => btn.classList.remove('selected', 'correct', 'wrong', 'border-secondary'));
+            const selectedBtn = document.getElementById(`opt-${quizType}-${selectedIdx}`);
+            selectedBtn.classList.add('selected');
+
+            qs.lastSelected = selectedIdx; // store for non-immediate feedback
+
+            // Logic branch based on Quiz Type
+            if (quizType === 'asesmen_akhir') {
+                 // No immediate feedback, just enable next button
+                 const nextBtn = document.getElementById(`qNextBtn-${quizType}`);
+                 nextBtn.disabled = false;
+                 nextBtn.classList.remove('opacity-50');
+                 nextBtn.innerText = "Selanjutnya";
+                 if(qs.currentIdx === data.length - 1) nextBtn.innerText = "Selesai";
+            } else {
+                // Immediate Feedback for Awal & Kuis
+                qs.answered = true;
+                const feedbackDiv = document.getElementById(`qFeedback-${quizType}`);
+                feedbackDiv.classList.remove('hidden');
+                
+                if (selectedIdx === q.answer) {
+                    qs.score += (100 / data.length);
+                    selectedBtn.classList.add('correct');
+                    feedbackDiv.className = 'mt-4 p-4 rounded-lg text-sm bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border border-green-200';
+                    feedbackDiv.innerHTML = `<strong><i class="fas fa-check-circle"></i> Benar!</strong> ${q.explanation ? '<br>'+q.explanation : ''}`;
+                } else {
+                    selectedBtn.classList.add('wrong');
+                    document.getElementById(`opt-${quizType}-${q.answer}`).classList.add('correct'); // show correct answer
+                    feedbackDiv.className = 'mt-4 p-4 rounded-lg text-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border border-red-200';
+                    feedbackDiv.innerHTML = `<strong><i class="fas fa-times-circle"></i> Kurang Tepat.</strong> ${q.explanation ? '<br>'+q.explanation : ''}`;
+                }
+                
+                document.getElementById(`qNextBtn-${quizType}`).classList.remove('hidden');
+                if(qs.currentIdx === data.length - 1) {
+                    document.getElementById(`qNextBtn-${quizType}`).innerText = "Lihat Hasil";
+                }
+            }
+        }
+
+        function nextQuestion(quizType) {
+            const qs = window[`quizState_${quizType}`];
+            const data = quizData[quizType];
+            
+            // Calculate score for assesmen_akhir (since no immediate feedback)
+            if (quizType === 'asesmen_akhir') {
+                if(qs.lastSelected === data[qs.currentIdx].answer){
+                    qs.score += (100 / data.length);
+                }
+            }
+
+            qs.currentIdx++;
+            
+            if (qs.currentIdx < data.length) {
+                loadQuestion(quizType);
+            } else {
+                finishQuiz(quizType);
+            }
+        }
+
+        function finishQuiz(quizType) {
+            const qs = window[`quizState_${quizType}`];
+            clearInterval(qs.interval);
+            
+            document.getElementById(`quizArea-${quizType}`).classList.add('hidden');
+            document.getElementById(`quizResult-${quizType}`).classList.remove('hidden');
+            
+            const finalScore = Math.round(qs.score);
+            state.scores[quizType === 'asesmen_awal' ? 'awal' : (quizType === 'kuis' ? 'kuis' : 'akhir')] = finalScore;
+            
+            // Animate Number
+            animateValue(`qScoreDisplay-${quizType}`, 0, finalScore, 1000);
+            
+            // Predicate
+            let pred = "";
+            let colorClass = "";
+            if (finalScore >= 90) { pred = "Sangat Baik"; colorClass = "text-green-500"; if(quizType==='asesmen_akhir') fireConfetti(); }
+            else if (finalScore >= 80) { pred = "Baik"; colorClass = "text-blue-500"; }
+            else if (finalScore >= 70) { pred = "Cukup"; colorClass = "text-yellow-500"; }
+            else { pred = "Perlu Bimbingan"; colorClass = "text-red-500"; }
+            
+            const predEl = document.getElementById(`qPredicate-${quizType}`);
+            predEl.innerText = pred;
+            predEl.className = `text-xl font-bold mb-8 ${colorClass}`;
+
+            markComplete(quizType);
+        }
+
+        // --- MODULE: SIMULATION (MATCHING GAME) ---
+        let matchState = { selectedLeft: null, pairsMatched: 0, totalPairs: 4 };
+        const matchData = [
+            { id: 1, left: "Lawan menghadang jalur lari", right: "Lakukan gerak tipu (feint) lalu ubah arah" },
+            { id: 2, left: "Mendarat di tempat yang tidak rata", right: "Buka kaki sedikit lebar, tekuk lutut untuk keseimbangan" },
+            { id: 3, left: "Operan bola datang melambung tinggi", right: "Mundur menyesuaikan posisi jatuhnya bola" },
+            { id: 4, left: "Permukaan lapangan licin", right: "Gunakan langkah pendek, hindari lari secepat penuh" }
+        ];
+
+        function renderSimulasi(container) {
+            matchState = { selectedLeft: null, pairsMatched: 0, totalPairs: 4 };
+            
+            // Shuffle rights
+            let rights = [...matchData].map(d => ({id:d.id, text:d.right})).sort(() => Math.random() - 0.5);
+
+            let html = `
+                <div class="text-center mb-6">
+                    <p class="text-gray-600 dark:text-gray-400">Cocokkan Situasi (Kiri) dengan Strategi Gerak yang tepat (Kanan) dengan cara klik satu per satu.</p>
+                </div>
+                
+                <div class="flex flex-col md:flex-row gap-8 justify-center items-stretch relative">
+                    <!-- Left Col -->
+                    <div class="flex-1 space-y-4" id="matchLeftCol">
+                        ${matchData.map((d, i) => `
+                            <div id="left-${d.id}" onclick="selectMatch('left', ${d.id})" class="match-item bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-sm text-sm sm:text-base font-semibold flex items-center min-h-[80px]">
+                                <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 text-xs">${i+1}</span>
+                                ${d.left}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Right Col -->
+                    <div class="flex-1 space-y-4" id="matchRightCol">
+                        ${rights.map((d, i) => `
+                            <div id="right-${d.id}" onclick="selectMatch('right', ${d.id})" class="match-item bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-sm text-sm sm:text-base flex items-center min-h-[80px]">
+                                <span class="bg-secondary text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 text-xs">${String.fromCharCode(65+i)}</span>
+                                ${d.text}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div id="matchFeedback" class="mt-6 text-center text-lg font-bold h-8 hidden"></div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function selectMatch(side, id) {
+            const el = document.getElementById(`${side}-${id}`);
+            if (el.classList.contains('matched')) return;
+
+            if (side === 'left') {
+                // Deselect prev left
+                document.querySelectorAll('#matchLeftCol .match-item').forEach(e => e.classList.remove('selected', 'border-primary'));
+                el.classList.add('selected', 'border-primary');
+                matchState.selectedLeft = id;
+            } else if (side === 'right' && matchState.selectedLeft !== null) {
+                checkMatch(id);
+            }
+        }
+
+        function checkMatch(rightId) {
+            const leftId = matchState.selectedLeft;
+            const leftEl = document.getElementById(`left-${leftId}`);
+            const rightEl = document.getElementById(`right-${rightId}`);
+            const feedback = document.getElementById('matchFeedback');
+
+            feedback.classList.remove('hidden');
+
+            if (leftId === rightId) {
+                // Correct
+                leftEl.classList.remove('selected', 'border-primary');
+                leftEl.classList.add('matched');
+                rightEl.classList.add('matched');
+                
+                leftEl.innerHTML += ' <i class="fas fa-check text-green-600 ml-auto"></i>';
+                rightEl.innerHTML += ' <i class="fas fa-check text-green-600 ml-auto"></i>';
+                
+                feedback.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle"></i> Tepat Sekali! Pikiran yang adaptif (Growth Mindset).</span>';
+                matchState.pairsMatched++;
+                
+                if(matchState.pairsMatched === matchState.totalPairs) {
+                    setTimeout(() => {
+                        feedback.innerHTML = '<span class="text-primary"><i class="fas fa-star"></i> Luar biasa! Kamu berhasil menguasai strategi adaptasi gerak.</span>';
+                        markComplete('simulasi');
+                        fireConfetti();
+                    }, 1000);
+                }
+            } else {
+                // Wrong
+                rightEl.classList.add('border-red-500', 'bg-red-50', 'dark:bg-red-900');
+                feedback.innerHTML = '<span class="text-red-500"><i class="fas fa-times-circle"></i> Kurang Tepat. Coba pikirkan kembali strategi yang pas. (Growth Mindset: Kesalahan adalah bagian dari belajar!)</span>';
+                setTimeout(() => {
+                    rightEl.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900');
+                    feedback.classList.add('hidden');
+                }, 2000);
+            }
+            matchState.selectedLeft = null;
+            document.querySelectorAll('#matchLeftCol .match-item:not(.matched)').forEach(e => e.classList.remove('selected', 'border-primary'));
+        }
+
+        // --- MODULE: REFLECTION ---
+
+        function renderRefleksi(container) {
+            let html = `
+                <div class="space-y-6 max-w-2xl mx-auto">
+                    <p class="text-center mb-4">Mari renungkan apa yang telah kamu pelajari hari ini.</p>
+                    
+                    <div>
+                        <label class="block font-semibold mb-2 text-primary dark:text-secondary">Saya sudah memahami...</label>
+                        <textarea class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white h-24" placeholder="Tuliskan pemahamanmu..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-2 text-primary dark:text-secondary">Hal yang paling menarik adalah...</label>
+                        <textarea class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white h-24" placeholder="Menurutmu apa yang seru?..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-2 text-primary dark:text-secondary">Hal yang masih membingungkan adalah...</label>
+                        <textarea class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white h-24" placeholder="Adakah yang belum jelas?..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-2 text-primary dark:text-secondary">Rencana saya setelah belajar materi ini adalah...</label>
+                        <textarea class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white h-24" placeholder="Misal: Saya akan mencoba menerapkannya saat main bola..."></textarea>
+                    </div>
+
+                    <div class="text-center pt-4 border-t dark:border-gray-700">
+                        <label class="block font-semibold mb-4 text-primary dark:text-secondary">Perasaan belajar hari ini:</label>
+                        <div class="flex justify-center gap-4 text-4xl">
+                            <button onclick="selectEmoji(this)" class="hover:scale-125 transition grayscale hover:grayscale-0 emoji-btn">🤩</button>
+                            <button onclick="selectEmoji(this)" class="hover:scale-125 transition grayscale hover:grayscale-0 emoji-btn">😊</button>
+                            <button onclick="selectEmoji(this)" class="hover:scale-125 transition grayscale hover:grayscale-0 emoji-btn">😐</button>
+                            <button onclick="selectEmoji(this)" class="hover:scale-125 transition grayscale hover:grayscale-0 emoji-btn">😕</button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="submitRefleksi()" class="w-full bg-primary hover:bg-primaryLight text-white py-3 rounded-xl font-bold mt-6 shadow-md transition">Kirim Refleksi</button>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+        
+        function selectEmoji(btn) {
+            document.querySelectorAll('.emoji-btn').forEach(b => b.classList.add('grayscale'));
+            btn.classList.remove('grayscale');
+        }
+
+        function submitRefleksi() {
+            showModal("Berhasil", "Terima kasih telah melakukan refleksi. Jawabanmu tersimpan di sistem pembelajaran lokal.");
+            markComplete('refleksi');
+        }
+
+        // --- MODULE: CERTIFICATE ---
+
+        function renderSertifikat(container) {
+            const date = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Generate Certificate Layout to be captured
+            let html = `
+                <div class="text-center mb-6">
+                    <p class="mb-4">Selamat! Kamu telah menyelesaikan modul pembelajaran ini.</p>
+                    <button onclick="downloadCert()" class="bg-secondary hover:bg-secondaryDark text-white px-6 py-2 rounded-lg font-bold shadow-md transition flex justify-center items-center gap-2 mx-auto">
+                        <i class="fas fa-download"></i> Unduh Sertifikat (PNG)
+                    </button>
+                </div>
+
+                <!-- Certificate Wrapper for html2canvas -->
+                <div class="overflow-x-auto pb-4 flex justify-center">
+                    <div id="certDOM" class="cert-bg w-[800px] h-[565px] (A4 Landscape aspect) p-10 flex flex-col justify-between items-center text-center shadow-2xl border-4 border-white text-gray-800 rounded-lg shrink-0 relative bg-white">
+                        
+                        <!-- Decoration Lines -->
+                        <div class="absolute top-4 left-4 right-4 bottom-4 border-2 border-primary opacity-30 rounded-lg pointer-events-none"></div>
+
+                        <div class="z-10 w-full mt-4">
+                            <h1 class="text-4xl font-extrabold text-primary tracking-wider mb-1" style="font-family: 'Georgia', serif;">SERTIFIKAT PENGHARGAAN</h1>
+                            <p class="text-secondary font-bold text-sm tracking-widest uppercase">Media Pembelajaran Interaktif PJOK</p>
+                        </div>
+
+                        <div class="z-10 w-full">
+                            <p class="text-gray-500 mb-2 italic">Diberikan Kepada:</p>
+                            <h2 class="text-4xl font-bold text-gray-800 mb-2 border-b-2 border-gray-300 inline-block px-10 pb-1">${state.studentName}</h2>
+                            <p class="text-lg font-semibold text-gray-600">Kelas: ${state.studentClass}</p>
+                        </div>
+
+                        <div class="z-10 w-full max-w-lg">
+                            <p class="text-sm text-gray-600 leading-relaxed">Atas pencapaiannya dalam menyelesaikan unit materi:</p>
+                            <p class="text-lg font-bold text-primary mt-1">"Menyempurnakan Keterampilan Gerak: Beradaptasi dengan Situasi Gerak yang Menantang"</p>
+                            <div class="mt-4 flex justify-center gap-8 text-sm font-semibold">
+                                <div class="bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
+                                    <span class="block text-xs text-gray-400">Skor Akhir</span>
+                                    <span class="text-xl text-secondary">${state.scores.akhir} / 100</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="z-10 w-full flex justify-between items-end px-12 mt-4">
+                            <div class="text-left">
+                                <div class="w-32 h-1 bg-gray-800 mb-2"></div>
+                                <p class="text-xs font-bold uppercase text-gray-500">Guru Pengampu</p>
+                            </div>
+                            
+                            <!-- Badge -->
+                            <div class="relative w-24 h-24 flex items-center justify-center">
+                                <div class="absolute inset-0 bg-yellow-400 rounded-full opacity-20"></div>
+                                <i class="fas fa-medal text-6xl text-yellow-500 drop-shadow-md"></i>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="mb-2 text-sm font-semibold">${date}</p>
+                                <div class="w-32 h-1 bg-gray-800 mb-2 ml-auto"></div>
+                                <p class="text-xs font-bold uppercase text-gray-500">Tanggal Selesai</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            markComplete('sertifikat');
+        }
+
+        function downloadCert() {
+            const certDOM = document.getElementById('certDOM');
+            showModal("Proses", "Sedang menyiapkan sertifikat...");
+            
+            // Temporarily adjust scale if needed for rendering quality
+            html2canvas(certDOM, {
+                scale: 2, // High resolution
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                closeAlert();
+                const link = document.createElement('a');
+                link.download = `Sertifikat_PJOK_${state.studentName.replace(/\s+/g, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                closeAlert();
+                console.error(err);
+                showModal("Error", "Gagal mengunduh sertifikat. Pastikan browser mendukung Canvas.");
+            });
+        }
+
+        // --- UTILITIES (Audio, Theme, TTS, Animation) ---
+
+        function toggleAudio() {
+            const audio = document.getElementById('bgMusic');
+            const btn = document.getElementById('btnAudio');
+            
+            if (audio.paused) {
+                audio.play().catch(e => console.log("Audio play blocked by browser", e));
+                state.isMuted = false;
+                btn.innerHTML = '<i class="fas fa-volume-up w-5"></i>';
+                btn.classList.add('text-secondary');
+            } else {
+                audio.pause();
+                state.isMuted = true;
+                btn.innerHTML = '<i class="fas fa-volume-mute w-5"></i>';
+                btn.classList.remove('text-secondary');
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                state.isDarkMode = false;
+            } else {
+                html.classList.add('dark');
+                state.isDarkMode = true;
+            }
+        }
+
+        // Text To Speech
+        let ttsSynth = window.speechSynthesis;
+        let ttsUtterance = null;
+        let isSpeaking = false;
+
+        function readAloudCurrentSection() {
+            if (!ttsSynth) {
+                showModal("Maaf", "Browser kamu tidak mendukung fitur Text-to-Speech.");
+                return;
+            }
+
+            if (isSpeaking) {
+                stopTTS();
+                return;
+            }
+
+            // Get text from dynamic content
+            const contentDiv = document.getElementById('dynamic-content');
+            let textToRead = "";
+            
+            if (['asesmen_awal', 'kuis', 'asesmen_akhir'].includes(state.currentSectionId)) {
+                // Specific for quiz: read question and options
+                const qEl = document.getElementById(`qQuestion-${state.currentSectionId}`);
+                if(qEl) {
+                    textToRead += "Pertanyaan. " + qEl.innerText + ". ";
+                    const opts = document.querySelectorAll(`#qOptions-${state.currentSectionId} .option-btn`);
+                    opts.forEach((opt, idx) => {
+                        textToRead += `Pilihan ${String.fromCharCode(65+idx)}. ${opt.innerText.substring(2)}. `; // substring to skip A/B/C
+                    });
+                } else {
+                    textToRead = "Silakan klik mulai mengerjakan kuis.";
+                }
+            } else {
+                // Just read all text in the div
+                textToRead = contentDiv.innerText;
+            }
+
+            if (!textToRead.trim()) return;
+
+            ttsUtterance = new SpeechSynthesisUtterance(textToRead);
+            ttsUtterance.lang = 'id-ID'; // Indonesian
+            ttsUtterance.rate = 0.9; // Slightly slower for clarity
+            
+            ttsUtterance.onend = () => {
+                isSpeaking = false;
+                document.getElementById('btnTTS').classList.remove('animate-pulse', 'text-yellow-400');
+            };
+
+            ttsSynth.speak(ttsUtterance);
+            isSpeaking = true;
+            document.getElementById('btnTTS').classList.add('animate-pulse', 'text-yellow-400');
+        }
+
+        function stopTTS() {
+            if (ttsSynth && isSpeaking) {
+                ttsSynth.cancel();
+                isSpeaking = false;
+                const btn = document.getElementById('btnTTS');
+                if(btn) btn.classList.remove('animate-pulse', 'text-yellow-400');
+            }
+        }
+
+        function fireConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval);
+              }
+
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount,
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+              }));
+              confetti(Object.assign({}, defaults, { particleCount,
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+              }));
+            }, 250);
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            var range = end - start;
+            var current = start;
+            var increment = end > start ? 1 : -1;
+            var stepTime = Math.abs(Math.floor(duration / range));
+            var obj = document.getElementById(id);
+            var timer = setInterval(function() {
+                current += increment;
+                obj.innerHTML = current;
+                if (current == end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        // Initialize on load
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
